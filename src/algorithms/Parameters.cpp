@@ -5,6 +5,8 @@ Parameters::Parameters()
    param1 = true;
    param2 = 1;
    param3 = 3.5;
+   
+   lucyN = 5;
 }
 
 

@@ -3,59 +3,86 @@
 #include <omp.h>
 #include <cmath>
 
-void Lucy::process(const Parameters &params, const Image &src, Image &dst)
-{
-   //************************************************************************
-   // Access image data
-   //************************************************************************
-   dst = src;
+void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
+    //************************************************************************
+    // Access image data
+    //************************************************************************
+    dst = src;
 
-   // get dimensions
-   const int M = src.height();
-   const int N = src.width();
+    // get dimensions
+    const int height = src.height();
+    const int width = src.width();
 
-   // traverse pixels
-   for (int y = 0; y < M; ++y) {
-      for (int x = 0; x < N; ++x) {
+    // get n
+    const int n = params.lucyN;
+    
+    
+    Image x = src;
+    Image b = src;
+    for (int i = 1; i <= n; i++) {
+        b = applyConstKernelOn(b);
+    }
+    dst = b;
+    
 
-         const Pixel &pixel = src[y][x];
+    printf("lucyN (int): %i\n", params.lucyN);
 
-         double red   = pixel.r;
-         double green = pixel.g;
-         double blue  = pixel.b;
+}
 
-         green = std::min(255.0, green + 50.0); // increase greeniness
+Image Lucy::applyConstKernelOn(const Image& src) {
+    // get dimensions
+    const int height = src.height();
+    const int width = src.width();
+    // Result Image
+    Image result = Image(height, width);
+    
 
-         dst[y][x] = Pixel(red, green, blue);
-      }
-   }
+    // pseudo kernel Value
+    const int k = 51;
+    const int range = (51 - 1) / 2;
+    
+    // Farbwerte
+    double red, green, blue;
+    double new_red;
+    double new_green;
+    double new_blue;
 
-   //************************************************************************
-   // How to use parameters from gui
-   //************************************************************************
-   printf("Param1 (bool): %i\n", params.param1);;
-   printf("Param2 (int): %i\n", params.param2);
-   printf("Param3 (double): %f\n", params.param3);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            new_red = 0.0;
+            new_green = 0.0;
+            new_blue = 0.0;
 
+            // Alle Werte im Kernel Bereich zu new-Werten addieren
+            for (int r = x - range; r <= x + range; r++) {
+                // Pixel liegt ausserhalb des Bildes
+                if (r < 0 || r >= width) {
+                    //printf("Pixel %i|%i liegt ausserhalb des Bildes (height=%i\twidht=%i)\n", y, x, height, width);
+                    red = 255.0;
+                    green = 255.0;
+                    blue = 255.0;
+                } else {
+                    // Bezugspixel im Original
+                    const Pixel &pixel = src[y][r];
+                    red = pixel.r;
+                    green = pixel.g;
+                    blue = pixel.b;
+                }
+                new_red += red;
+                new_green += green;
+                new_blue += blue;
+            }
+            
+            // Arith. Mittel bilden
+            new_red = new_red / k;
+            new_blue = new_blue / k;
+            new_green = new_green / k;
 
-   //************************************************************************
-   // OPEN MP
-   //************************************************************************
-   int nthreads, tid;
-   /* Fork a team of threads giving them their own copies of variables */
-   #pragma omp parallel private(nthreads, tid)
-   {
-      /* Obtain thread number */
-      tid = omp_get_thread_num();
-      printf("Hello World from thread = %d\n", tid);
-
-      // Only master thread does this
-      if (tid == 0) {
-         nthreads = omp_get_num_threads();
-         printf("Number of threads = %d\n", nthreads);
-      }
-   }  /* All threads join master thread and disband */
-
-
-
+            //const Pixel &p = src[y][x];
+            //printf("Alte Werte:\tr=%f\tg=%f\tb=%f\n", p.r, p.g, p.b);
+            //printf("Neue Werte:\tr=%f\tg=%f\tb=%f\n", new_red, new_green, new_blue);
+            result[y][x] = Pixel(new_red, new_green, new_blue);
+        }
+    }
+    return result;
 }

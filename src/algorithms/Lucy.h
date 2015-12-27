@@ -3,11 +3,12 @@
 
 #include "Algorithm.h"
 
-class Lucy : public Algorithm
-{
+class Lucy : public Algorithm {
 public:
-   void process(const Parameters &params, const Image &src, Image &dst);
+    void process(const Parameters &params, const Image &src, Image &dst);
 
+private:
+    Image applyConstKernelOn(const Image &src);
 };
 
 #endif
