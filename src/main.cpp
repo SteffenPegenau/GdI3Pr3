@@ -3,6 +3,9 @@
 #include "algorithms/Algorithm.h"
 #include "algorithms/Greenify.h"
 #include "algorithms/Lucy.h"
+#include "algorithms/LucyOMP.h"
+#include "algorithms/Cartoonize.h"
+#include "algorithms/CartoonizeOMP.h"
 
 #include "algorithms/Parameters.h"
 
@@ -33,6 +36,9 @@ int main(int argc, char **argv)
    // YOU SHOULD ADD SOMETHING HERE..
    //------------------------------------
    std::shared_ptr<Algorithm> lucy(new Lucy);
+   std::shared_ptr<Algorithm> lucyomp(new LucyOMP);
+   std::shared_ptr<Algorithm> cartoonize(new Cartoonize);
+   std::shared_ptr<Algorithm> cartoonizeomp(new CartoonizeOMP);
 
    // add algorithms to gui
    window.addAlgorithm("Greenify", greenify.get());
@@ -40,6 +46,9 @@ int main(int argc, char **argv)
    // YOU SHOULD ADD SOMETHING HERE..
    //------------------------------------
    window.addAlgorithm("Lucy", lucy.get());
+   window.addAlgorithm("LucyOMP", lucyomp.get());
+   window.addAlgorithm("Cartoonize", cartoonize.get());
+   window.addAlgorithm("Cartoonize", cartoonizeomp.get());
 
 
 

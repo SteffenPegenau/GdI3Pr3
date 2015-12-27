@@ -48,9 +48,14 @@ add_executable(lab3
    src/algorithms/Greenify.cpp
    src/algorithms/Greenify.h
 
-
    src/algorithms/Lucy.cpp
    src/algorithms/Lucy.h
+   src/algorithms/LucyOMP.cpp
+   src/algorithms/LucyOMP.h
+   src/algorithms/Cartoonize.cpp
+   src/algorithms/Cartoonize.h
+   src/algorithms/CartoonizeOMP.cpp
+   src/algorithms/CartoonizeOMP.h
 
    src/gui/Callback.h
    src/gui/MainWindow.cpp
