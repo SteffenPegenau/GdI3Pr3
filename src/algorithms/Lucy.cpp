@@ -4,6 +4,10 @@
 #include <cmath>
 
 void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
+    clock_t start, ende, laufzeit;
+    float dauer;
+    
+    start = clock();
     //************************************************************************
     // Access image data
     //************************************************************************
@@ -16,21 +20,21 @@ void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
     // get n
     const int n = params.lucyN;
 
-    Image g = src;
-    Image x = src;
     Image u, b, d;
     for (int i = 1; i <= n; i++) {
         printf("(%i / %i)\n", i, n);
-        b = applyConstKernelOn(x);
-        u = division(g, b);
+        b = applyConstKernelOn(dst);
+        u = division(src, b);
         d = applyConstKernelOn(u);
-        x = multiplication(x, d);
+        dst = multiplication(dst, d);
     }
-    dst = x;
+    ende = clock();
+    laufzeit = ende - start;
+    dauer = 1000 * (float)laufzeit / CLOCKS_PER_SEC;
+    
 
-
-    printf("lucyN (int): %i\n", params.lucyN);
-
+    printf("Interationen: %i\n", params.lucyN);
+    printf("Dauer: %f ms\n", dauer);
 }
 
 Image Lucy::applyConstKernelOn(const Image& src) {
