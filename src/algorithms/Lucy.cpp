@@ -15,15 +15,19 @@ void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
 
     // get n
     const int n = params.lucyN;
-    
-    
+
+    Image g = src;
     Image x = src;
-    Image b = src;
+    Image u, b, d;
     for (int i = 1; i <= n; i++) {
-        b = applyConstKernelOn(b);
+        printf("(%i / %i)\n", i, n);
+        b = applyConstKernelOn(x);
+        u = division(g, b);
+        d = applyConstKernelOn(u);
+        x = multiplication(x, d);
     }
-    dst = b;
-    
+    dst = x;
+
 
     printf("lucyN (int): %i\n", params.lucyN);
 
@@ -35,12 +39,12 @@ Image Lucy::applyConstKernelOn(const Image& src) {
     const int width = src.width();
     // Result Image
     Image result = Image(height, width);
-    
+
 
     // pseudo kernel Value
     const int k = 51;
     const int range = (51 - 1) / 2;
-    
+
     // Farbwerte
     double red, green, blue;
     double new_red;
@@ -72,7 +76,7 @@ Image Lucy::applyConstKernelOn(const Image& src) {
                 new_green += green;
                 new_blue += blue;
             }
-            
+
             // Arith. Mittel bilden
             new_red = new_red / k;
             new_blue = new_blue / k;
@@ -82,6 +86,48 @@ Image Lucy::applyConstKernelOn(const Image& src) {
             //printf("Alte Werte:\tr=%f\tg=%f\tb=%f\n", p.r, p.g, p.b);
             //printf("Neue Werte:\tr=%f\tg=%f\tb=%f\n", new_red, new_green, new_blue);
             result[y][x] = Pixel(new_red, new_green, new_blue);
+        }
+    }
+    return result;
+}
+
+Image Lucy::division(const Image& dividend, const Image& divisor) {
+    // get dimensions
+    const int height = dividend.height();
+    const int width = dividend.width();
+    // Result Image
+    double r, g, b;
+
+    Image result = Image(height, width);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const Pixel &f1 = dividend[y][x];
+            const Pixel &f2 = divisor[y][x];
+            r = (f1.r / f2.r > 255) ? 255 : f1.r / f2.r;
+            g = (f1.g / f2.g > 255) ? 255 : f1.g / f2.g;
+            b = (f1.b / f2.b > 255) ? 255 : f1.b / f2.b;
+            result[y][x] = Pixel(r, g, b);
+        }
+    }
+    return result;
+}
+
+Image Lucy::multiplication(const Image& factor1, const Image& factor2) {
+    // get dimensions
+    const int height = factor1.height();
+    const int width = factor1.width();
+    // Result Image
+    double r, g, b;
+    
+    Image result = Image(height, width);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const Pixel &f1 = factor1[y][x];
+            const Pixel &f2 = factor2[y][x];
+            r = (f1.r * f2.r > 255) ? 255 : f1.r * f2.r;
+            g = (f1.g * f2.g > 255) ? 255 : f1.g * f2.g;
+            b = (f1.b * f2.b > 255) ? 255 : f1.b * f2.b;
+            result[y][x] = Pixel(r, g, b);
         }
     }
     return result;
