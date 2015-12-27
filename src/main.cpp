@@ -2,6 +2,7 @@
 
 #include "algorithms/Algorithm.h"
 #include "algorithms/Greenify.h"
+#include "algorithms/Lucy.h"
 
 #include "algorithms/Parameters.h"
 
@@ -31,12 +32,14 @@ int main(int argc, char **argv)
    //------------------------------------
    // YOU SHOULD ADD SOMETHING HERE..
    //------------------------------------
+   std::shared_ptr<Algorithm> lucy(new Lucy);
 
    // add algorithms to gui
    window.addAlgorithm("Greenify", greenify.get());
    //------------------------------------
    // YOU SHOULD ADD SOMETHING HERE..
    //------------------------------------
+   window.addAlgorithm("Lucy", lucy.get());
 
 
 
