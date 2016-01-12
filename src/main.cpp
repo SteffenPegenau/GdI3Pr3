@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     window.addAlgorithm("Lucy", lucy.get());
     window.addAlgorithm("LucyOMP", lucyomp.get());
     window.addAlgorithm("Cartoonize", cartoonize.get());
-    window.addAlgorithm("Cartoonize", cartoonizeomp.get());
+    window.addAlgorithm("CartoonizeOMP", cartoonizeomp.get());
 
 
 
@@ -78,13 +78,27 @@ int main(int argc, char **argv) {
     // new parameters
 
     // Lucy Parameter
-
     QLineEdit *lineEdit_lucyN = window.addIntLineEdit("Lucy - Anzahl Iterationen:");
     lineEdit_lucyN->setText(QString::number(5));
     MainWindow::connect(lineEdit_lucyN, SIGNAL(textChanged(const QString&)), &params, SLOT(setLucyN(QString)));
 
+    // Cartoonize Parameter
+    QLineEdit *lineEdit_filterSize = window.addIntLineEdit("Cartoonize - Filtergroesse:");
+    lineEdit_filterSize->setText(QString::number(15));
+    MainWindow::connect(lineEdit_filterSize, SIGNAL(textChanged(const QString&)), &params, SLOT(setFilterSize(QString)));
 
+    
+    QLineEdit *lineEdit_sigmaD = window.addIntLineEdit("Cartoonize - Sigma D:");
+    lineEdit_sigmaD->setText(QString::number(7));
+    MainWindow::connect(lineEdit_sigmaD, SIGNAL(textChanged(const QString&)), &params, SLOT(setSigmaD(QString)));
 
+    QLineEdit *lineEdit_sigmaR = window.addIntLineEdit("Cartoonize - Sigma R:");
+    lineEdit_sigmaR->setText(QString::number(23));
+    MainWindow::connect(lineEdit_sigmaR, SIGNAL(textChanged(const QString&)), &params, SLOT(setSigmaR(QString)));
+
+    QLineEdit *lineEdit_tau = window.addIntLineEdit("Cartoonize - Tau:");
+    lineEdit_tau->setText(QString::number(50));
+    MainWindow::connect(lineEdit_tau, SIGNAL(textChanged(const QString&)), &params, SLOT(setTau(QString)));
 
 
     // finally show the main window
