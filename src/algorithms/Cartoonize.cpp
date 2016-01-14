@@ -3,11 +3,83 @@
 #include <omp.h>
 #include <cmath>
 
+
 int Cartoonize::toValidCoord(int &i, const int &max) {
     if (i < 0) return 0;
     if (i >= max) return max - 1;
     return i;
 }
+
+/**
+ * Erwartet ein Bild mit den Grauwerten in R!
+ * 
+ * Führt Kantendetektion durch, anschließend befindet sich das Kantenbild in b
+ */
+void Cartoonize::kantendetektion(Image& src, const int tau) {
+    
+    const int Y = src.height();
+    const int X = src.width();
+    
+    // x - 1 und x + 1
+    int xm1,xp1;
+    // y - 1 und y + 1
+    int ym1, yp1;
+    
+    for (int y = 0; y < Y; y++) {
+        for (int x = 0; x < X; x++) {
+            Pixel &p = src[y][x];
+            xm1 = x - 1;
+            xp1 = x + 1;
+            ym1 = y - 1;
+            yp1 = y + 1;
+            
+            // Ableitung in x-Richtung in .g
+            p.g = src[toValidCoord(ym1, Y)][toValidCoord(xm1, X)].r;
+            p.g += src[toValidCoord(ym1, Y)][toValidCoord(xp1, X)].r * (-1);
+            p.g += src[toValidCoord(y, Y)][toValidCoord(xm1, X)].r * 2;
+            p.g += src[toValidCoord(y, Y)][toValidCoord(xp1, X)].r * (-2);
+            p.g += src[toValidCoord(yp1, Y)][toValidCoord(xm1, X)].r;
+            p.g += src[toValidCoord(yp1, Y)][toValidCoord(xp1, X)].r * (-1);
+            
+            // Ableitung in y-Richtung in .b
+            p.b = src[toValidCoord(ym1, Y)][toValidCoord(xm1, X)].r;
+            p.b += src[toValidCoord(ym1, Y)][toValidCoord(x, X)].r * 2;
+            p.b += src[toValidCoord(ym1, Y)][toValidCoord(xp1, X)].r;
+            p.b += src[toValidCoord(yp1, Y)][toValidCoord(xm1, X)].r * (-1);
+            p.b += src[toValidCoord(yp1, Y)][toValidCoord(x, X)].r * (-2);            
+            p.b += src[toValidCoord(yp1, Y)][toValidCoord(xp1, X)].r * (-1);
+            
+            // G in .g
+            p.g = sqrt(pow(p.g,2) + pow(p.b,2));
+            // Binaerkantenbild in .b
+            p.b = (p.g < tau) ? 0 : p.g;
+        }
+    }
+}
+
+/**
+ * Speichert den Grauwert in R.
+ * 
+ * G und B sind 0.0
+ */
+Image Cartoonize::greyscale(const Image& src) {
+    Image grey = src;
+    // get dimensions
+    const int Y = src.height();
+    const int X = src.width();
+
+    for (int y = 0; y < Y; y++) {
+        for (int x = 0; x < X; x++) {
+            Pixel &p = grey[y][x];
+            p.r = 0.2989 * p.r + 0.587 * p.g + 0.114 * p.b;
+            p.g = 0.0;
+            p.b = 0.0;
+        }
+    }
+    return grey;
+}
+
+
 
 /**
  * Berechnet die raeumliche Charakteristik zweier Koordinaten
@@ -102,7 +174,7 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
     //************************************************************************
     // Access image data
     //************************************************************************
-    dst = src;
+    //dst = src;
 
     const int filterSize = params.filterSize;
     const int sigmaD = params.sigmaD;
@@ -110,8 +182,8 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
     const int tau = params.tau;
 
     // get dimensions
-    const int M = src.height();
-    const int N = src.width();
+    const int Y = src.height();
+    const int X = src.width();
 
 
     //************************************************************************
@@ -123,8 +195,21 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
     printf("Sigma R: %i\n", sigmaR);
     printf("Sigma R: %i\n", tau);
 
-    Image g = bilateralFilter(src, filterSize, sigmaD, sigmaR);
-
-    dst = g;
+    dst = bilateralFilter(src, filterSize, sigmaD, sigmaR);
+    
+    Image kanten = greyscale(dst);
+    kantendetektion(kanten, tau);
+    
+    for (int y = 0; y < Y; y++) {
+        for (int x = 0; x < X; x++) {
+            Pixel &pk = kanten[y][x];
+            if(pk.b != 0) {
+                Pixel &p = dst[y][x];
+                p.r = 0;
+                p.g = 0;
+                p.b = 0;
+            }
+        }
+    }
 }
 
