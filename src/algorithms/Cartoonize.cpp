@@ -1,8 +1,7 @@
 #include "Cartoonize.h"
-
 #include <omp.h>
 #include <cmath>
-
+#include <QTime>
 
 int Cartoonize::toValidCoord(int &i, const int &max) {
     if (i < 0) return 0;
@@ -16,15 +15,15 @@ int Cartoonize::toValidCoord(int &i, const int &max) {
  * Führt Kantendetektion durch, anschließend befindet sich das Kantenbild in b
  */
 void Cartoonize::kantendetektion(Image& src, const int tau) {
-    
+
     const int Y = src.height();
     const int X = src.width();
-    
+
     // x - 1 und x + 1
-    int xm1,xp1;
+    int xm1, xp1;
     // y - 1 und y + 1
     int ym1, yp1;
-    
+
     for (int y = 0; y < Y; y++) {
         for (int x = 0; x < X; x++) {
             Pixel &p = src[y][x];
@@ -32,7 +31,7 @@ void Cartoonize::kantendetektion(Image& src, const int tau) {
             xp1 = x + 1;
             ym1 = y - 1;
             yp1 = y + 1;
-            
+
             // Ableitung in x-Richtung in .g
             p.g = src[toValidCoord(ym1, Y)][toValidCoord(xm1, X)].r;
             p.g += src[toValidCoord(ym1, Y)][toValidCoord(xp1, X)].r * (-1);
@@ -40,17 +39,17 @@ void Cartoonize::kantendetektion(Image& src, const int tau) {
             p.g += src[toValidCoord(y, Y)][toValidCoord(xp1, X)].r * (-2);
             p.g += src[toValidCoord(yp1, Y)][toValidCoord(xm1, X)].r;
             p.g += src[toValidCoord(yp1, Y)][toValidCoord(xp1, X)].r * (-1);
-            
+
             // Ableitung in y-Richtung in .b
             p.b = src[toValidCoord(ym1, Y)][toValidCoord(xm1, X)].r;
             p.b += src[toValidCoord(ym1, Y)][toValidCoord(x, X)].r * 2;
             p.b += src[toValidCoord(ym1, Y)][toValidCoord(xp1, X)].r;
             p.b += src[toValidCoord(yp1, Y)][toValidCoord(xm1, X)].r * (-1);
-            p.b += src[toValidCoord(yp1, Y)][toValidCoord(x, X)].r * (-2);            
+            p.b += src[toValidCoord(yp1, Y)][toValidCoord(x, X)].r * (-2);
             p.b += src[toValidCoord(yp1, Y)][toValidCoord(xp1, X)].r * (-1);
-            
+
             // G in .g
-            p.g = sqrt(pow(p.g,2) + pow(p.b,2));
+            p.g = sqrt(pow(p.g, 2) + pow(p.b, 2));
             // Binaerkantenbild in .b
             p.b = (p.g < tau) ? 0 : p.g;
         }
@@ -78,8 +77,6 @@ Image Cartoonize::greyscale(const Image& src) {
     }
     return grey;
 }
-
-
 
 /**
  * Berechnet die raeumliche Charakteristik zweier Koordinaten
@@ -109,7 +106,7 @@ double Cartoonize::c_edge(const Image &f, const int sigmaR, int x1, int y1, int 
     const Pixel p1 = f[y1][x1];
     const Pixel p2 = f[y2][x2];
     double cd = colorDistance(p1, p2);
-    return  -pow(cd, 2) / (2 * pow(sigmaR, 2));
+    return -pow(cd, 2) / (2 * pow(sigmaR, 2));
 }
 
 /**
@@ -175,7 +172,8 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
     // Access image data
     //************************************************************************
     //dst = src;
-
+    QTime timer;
+    timer.start();
     const int filterSize = params.filterSize;
     const int sigmaD = params.sigmaD;
     const int sigmaR = params.sigmaR;
@@ -196,14 +194,14 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
     printf("Sigma R: %i\n", tau);
 
     dst = bilateralFilter(src, filterSize, sigmaD, sigmaR);
-    
+
     Image kanten = greyscale(dst);
     kantendetektion(kanten, tau);
-    
+
     for (int y = 0; y < Y; y++) {
         for (int x = 0; x < X; x++) {
             Pixel &pk = kanten[y][x];
-            if(pk.b != 0) {
+            if (pk.b != 0) {
                 Pixel &p = dst[y][x];
                 p.r = 0;
                 p.g = 0;
@@ -211,5 +209,7 @@ void Cartoonize::process(const Parameters &params, const Image &src, Image &dst)
             }
         }
     }
+    int laufzeitMS = timer.elapsed();
+    printf("Laufzeit (ms):%i\n", laufzeitMS);
 }
 

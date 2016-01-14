@@ -1,13 +1,12 @@
 #include "Lucy.h"
-
+#include <QTime>
 #include <omp.h>
 #include <cmath>
 
 void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
-    clock_t start, ende, laufzeit;
-    float dauer;
     
-    start = clock();
+    QTime timer;
+    timer.start();
     //************************************************************************
     // Access image data
     //************************************************************************
@@ -28,13 +27,12 @@ void Lucy::process(const Parameters &params, const Image &src, Image &dst) {
         d = applyConstKernelOn(u);
         dst = multiplication(dst, d);
     }
-    ende = clock();
-    laufzeit = ende - start;
-    dauer = 1000 * (float)laufzeit / CLOCKS_PER_SEC;
-    
+    int laufzeitMS = timer.elapsed();
+    double laufzeitPerIt = laufzeitMS / (double) params.lucyN;
 
-    printf("Interationen: %i\n", params.lucyN);
-    printf("Dauer: %f ms\n", dauer);
+    printf("Iterationen: %i\n", params.lucyN);
+    printf("Dauer: %i ms\n", laufzeitMS);
+    printf("=> ~%f ms/Iteration\n", laufzeitPerIt);
 }
 
 Image Lucy::applyConstKernelOn(const Image& src) {
