@@ -1,61 +1,127 @@
 #include "LucyOMP.h"
-
+#include <QTime>
 #include <omp.h>
 #include <cmath>
 
-void LucyOMP::process(const Parameters &params, const Image &src, Image &dst)
-{
-   //************************************************************************
-   // Access image data
-   //************************************************************************
-   dst = src;
+void LucyOMP::process(const Parameters &params, const Image &src, Image &dst) {
+    QTime timer;
+    timer.start();
+    //************************************************************************
+    // Access image data
+    //************************************************************************
+    dst = src;
+    // get n
+    const int n = params.lucyN;
 
-   // get dimensions
-   const int M = src.height();
-   const int N = src.width();
+    Image b, d;
+    for (int i = 1; i <= n; i++) {
+        printf("(%i / %i)\n", i, n);
+        b = applyConstKernelOn(dst);
+        division(src, b);
+        d = applyConstKernelOn(b);
+        multiplication(dst, d);
+    }
+    int laufzeitMS = timer.elapsed();
+    double laufzeitPerIt = laufzeitMS / (double) params.lucyN;
 
-   // traverse pixels
-   for (int y = 0; y < M; ++y) {
-      for (int x = 0; x < N; ++x) {
+    printf("Iterationen: %i\n", params.lucyN);
+    printf("Dauer: %i ms\n", laufzeitMS);
+    printf("=> ~%f ms/Iteration\n", laufzeitPerIt);
+}
 
-         const Pixel &pixel = src[y][x];
-
-         double red   = pixel.r;
-         double green = pixel.g;
-         double blue  = pixel.b;
-
-         green = std::min(255.0, green + 50.0); // increase greeniness
-
-         dst[y][x] = Pixel(red, green, blue);
-      }
-   }
-
-   //************************************************************************
-   // How to use parameters from gui
-   //************************************************************************
-   printf("Param1 (bool): %i\n", params.param1);;
-   printf("Param2 (int): %i\n", params.param2);
-   printf("Param3 (double): %f\n", params.param3);
-
-
-   //************************************************************************
-   // OPEN MP
-   //************************************************************************
-   int nthreads, tid;
-   /* Fork a team of threads giving them their own copies of variables */
-   #pragma omp parallel private(nthreads, tid)
-   {
-      /* Obtain thread number */
-      tid = omp_get_thread_num();
-      printf("Hello World from thread = %d\n", tid);
-
-      // Only master thread does this
-      if (tid == 0) {
-         nthreads = omp_get_num_threads();
-         printf("Number of threads = %d\n", nthreads);
-      }
-   }  /* All threads join master thread and disband */
+Image LucyOMP::applyConstKernelOn(const Image& src) {
+    // get dimensions
+    const int height = src.height();
+    const int width = src.width();
+    // Result Image
+    Image result = src;
 
 
+    // pseudo kernel Value
+    const int k = 51;
+    const int range = (51 - 1) / 2;
 
+    #pragma omp parallel for
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            Pixel &p = result[y][x];
+
+            // Alle Werte im Kernel Bereich zu new-Werten addieren
+            for (int r = x - range; r <= x + range; r++) {
+                // Pixel liegt ausserhalb des Bildes
+                if (r < 0 || r >= width) {
+                    //printf("Pixel %i|%i liegt ausserhalb des Bildes (height=%i\twidht=%i)\n", y, x, height, width);
+                    p.r += 255.0;
+                    p.g += 255.0;
+                    p.b += 255.0;
+                } else {
+                    // Bezugspixel im Original
+                    const Pixel &pixel = src[y][r];
+                    p.r += pixel.r;
+                    p.g += pixel.g;
+                    p.b += pixel.b;
+                }
+            }
+
+            // Arith. Mittel bilden
+            p.r = p.r / k;
+            p.b = p.b / k;
+            p.g = p.g / k;
+            //printf("%f\t%f\t%f\n", p.r, p.b, p.g);
+        }
+    }
+    return result;
+}
+
+/**
+ * Dividiert den Dividenden durch den Divisor
+ * 
+ * Ergebnis in Divisor
+ */
+void LucyOMP::division(const Image& dividend, Image& divisor) {
+    // get dimensions
+    const int height = dividend.height();
+    const int width = dividend.width();
+
+    #pragma omp parallel for
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const Pixel &r = dividend[y][x];
+            Pixel &f = divisor[y][x];
+            f.r = r.r / f.r;
+            if(f.r > 255) f.r = 255;
+            
+            f.g = r.g / f.g;
+            if(f.g > 255) f.g = 255;
+            
+            f.b = r.b / f.b;
+            if(f.b > 255) f.b = 255;
+        }
+    }
+}
+
+/**
+ * Multipliziert auf factor1 den faktor2 (Ergebnis in factor 1)
+ */
+void LucyOMP::multiplication(Image& factor1, const Image& factor2) {
+    // get dimensions
+    const int height = factor1.height();
+    const int width = factor1.width();
+
+    
+    #pragma omp parallel for
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            Pixel &r = factor1[y][x];
+            const Pixel &f = factor2[y][x];
+            r.r *= f.r;
+            if(r.r > 255) r.r = 255;
+            
+            r.g *= f.g;
+            if(r.g > 255) r.g = 255;
+            
+            r.b *= f.b;
+            if(r.b > 255) r.b = 255;
+        }
+    }
 }
