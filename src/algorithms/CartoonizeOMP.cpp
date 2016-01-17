@@ -24,8 +24,9 @@ void CartoonizeOMP::kantendetektion(Image& src, const int tau) {
     int xm1, xp1;
     // y - 1 und y + 1
     int ym1, yp1;
-
+#pragma omg parallel for
     for (int y = 0; y < Y; y++) {
+
         for (int x = 0; x < X; x++) {
             Pixel &p = src[y][x];
             xm1 = x - 1;
@@ -68,20 +69,13 @@ Image CartoonizeOMP::greyscale(const Image& src) {
     const int Y = src.height();
     const int X = src.width();
 
-    int x, y;
-
-
-#pragma omp parallel shared(grey) private(y,x)
-    {
-
-#pragma omp for schedule(dynamic) nowait
-        for (y = 0; y < Y; y++) {
-            for (x = 0; x < X; x++) {
-                Pixel &p = grey[y][x];
-                p.r = 0.2989 * p.r + 0.587 * p.g + 0.114 * p.b;
-                p.g = 0.0;
-                p.b = 0.0;
-            }
+#pragma omp parallel for
+    for (int y = 0; y < Y; y++) {
+        for (int x = 0; x < X; x++) {
+            Pixel &p = grey[y][x];
+            p.r = 0.2989 * p.r + 0.587 * p.g + 0.114 * p.b;
+            p.g = 0.0;
+            p.b = 0.0;
         }
     }
     return grey;
@@ -140,17 +134,20 @@ Image CartoonizeOMP::bilateralFilter(const Image& src, const int& filterSize, co
     int range = (filterSize - 1) / 2;
     double w = 0;
     double wSum = 0;
+    double wFak = 0;
     double red, green, blue;
     int tmpX, tmpY;
 
     int x, y;
+
+#pragma omg parallel for
     for (y = 0; y < Y; y++) {
         for (x = 0; x < X; x++) {
             // Init für neue Pixelberechnung
             Pixel &p = g[y][x];
-            red = 0;
-            green = 0;
-            blue = 0;
+            p.r = 0;
+            p.g = 0;
+            p.b = 0;
             wSum = 0;
             for (int ry = y - range; ry <= y + range; ry++) {
                 for (int rx = x - range; rx <= x + range; rx++) {
@@ -160,20 +157,22 @@ Image CartoonizeOMP::bilateralFilter(const Image& src, const int& filterSize, co
                     const Pixel &f = src[tmpY][tmpX];
 
                     // Zähler
-                    red += f.r * w;
-                    green += f.g * w;
-                    blue += f.b * w;
+                    p.r += f.r * w;
+                    p.g += f.g * w;
+                    p.b += f.b * w;
 
                     // Nenner
                     wSum += w;
 
                 }
             }
-            p.r = red / wSum;
-            p.g = green / wSum;
-            p.b = blue / wSum;
+            wFak = 1 / wSum;
+            p.r /= wSum;
+            p.g /= wSum;
+            p.b /= wSum;
         }
     }
+
     return g;
 }
 
@@ -209,28 +208,16 @@ void CartoonizeOMP::process(const Parameters &params, const Image &src, Image &d
     Image kanten = greyscale(dst);
     kantendetektion(kanten, tau);
 
-    int y, x;
+    const Pixel zeroPixel = Pixel(0, 0, 0);
 
-#pragma omp parallel shared(kanten) private(y,x)
-    {
-
-#pragma omp for schedule(dynamic) nowait
-        for (y = 0; y < Y; y++) {
-            for (x = 0; x < X; x++) {
-                Pixel &pk = kanten[y][x];
-                if (pk.b != 0) {
-                    Pixel &p = dst[y][x];
-                    p.r = 0;
-                    p.g = 0;
-                    p.b = 0;
-                }
+#pragma omp parallel for
+    for (int y = 0; y < Y; y++) {
+        for (int x = 0; x < X; x++) {
+            if (kanten[y][x].b != 0) {
+                dst[y][x] = zeroPixel;
             }
         }
-
-    } /* end of parallel section */
-
-
-
+    }
     int laufzeitMS = timer.elapsed();
-    printf("Laufzeit (ms):%i\n", laufzeitMS);
+    printf("Laufzeit CartoonizeOMP (ms):%i\n", laufzeitMS);
 }
