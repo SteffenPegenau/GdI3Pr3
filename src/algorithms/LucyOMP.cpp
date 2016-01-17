@@ -38,7 +38,7 @@ Image LucyOMP::applyConstKernelOn(const Image& src) {
 
 
     // pseudo kernel Value
-    const int k = 51;
+    const double k = 1.0 / 51.0;
     const int range = (51 - 1) / 2;
 
     #pragma omp parallel for
@@ -64,9 +64,9 @@ Image LucyOMP::applyConstKernelOn(const Image& src) {
             }
 
             // Arith. Mittel bilden
-            p.r = p.r / k;
-            p.b = p.b / k;
-            p.g = p.g / k;
+            p.r *= k;
+            p.b *= k;
+            p.g *= k;
             //printf("%f\t%f\t%f\n", p.r, p.b, p.g);
         }
     }

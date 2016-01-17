@@ -68,12 +68,20 @@ Image CartoonizeOMP::greyscale(const Image& src) {
     const int Y = src.height();
     const int X = src.width();
 
-    for (int y = 0; y < Y; y++) {
-        for (int x = 0; x < X; x++) {
-            Pixel &p = grey[y][x];
-            p.r = 0.2989 * p.r + 0.587 * p.g + 0.114 * p.b;
-            p.g = 0.0;
-            p.b = 0.0;
+    int x, y;
+
+
+#pragma omp parallel shared(grey) private(y,x)
+    {
+
+#pragma omp for schedule(dynamic) nowait
+        for (y = 0; y < Y; y++) {
+            for (x = 0; x < X; x++) {
+                Pixel &p = grey[y][x];
+                p.r = 0.2989 * p.r + 0.587 * p.g + 0.114 * p.b;
+                p.g = 0.0;
+                p.b = 0.0;
+            }
         }
     }
     return grey;
@@ -134,9 +142,10 @@ Image CartoonizeOMP::bilateralFilter(const Image& src, const int& filterSize, co
     double wSum = 0;
     double red, green, blue;
     int tmpX, tmpY;
-    
-    for (int y = 0; y < Y; y++) {
-        for (int x = 0; x < X; x++) {
+
+    int x, y;
+    for (y = 0; y < Y; y++) {
+        for (x = 0; x < X; x++) {
             // Init für neue Pixelberechnung
             Pixel &p = g[y][x];
             red = 0;
@@ -199,18 +208,29 @@ void CartoonizeOMP::process(const Parameters &params, const Image &src, Image &d
 
     Image kanten = greyscale(dst);
     kantendetektion(kanten, tau);
-    
-    for (int y = 0; y < Y; y++) {
-        for (int x = 0; x < X; x++) {
-            Pixel &pk = kanten[y][x];
-            if (pk.b != 0) {
-                Pixel &p = dst[y][x];
-                p.r = 0;
-                p.g = 0;
-                p.b = 0;
+
+    int y, x;
+
+#pragma omp parallel shared(kanten) private(y,x)
+    {
+
+#pragma omp for schedule(dynamic) nowait
+        for (y = 0; y < Y; y++) {
+            for (x = 0; x < X; x++) {
+                Pixel &pk = kanten[y][x];
+                if (pk.b != 0) {
+                    Pixel &p = dst[y][x];
+                    p.r = 0;
+                    p.g = 0;
+                    p.b = 0;
+                }
             }
         }
-    }
+
+    } /* end of parallel section */
+
+
+
     int laufzeitMS = timer.elapsed();
     printf("Laufzeit (ms):%i\n", laufzeitMS);
 }
